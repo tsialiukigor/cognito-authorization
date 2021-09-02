@@ -1,0 +1,81 @@
+service: cognito-authorization
+
+frameworkVersion: '2'
+
+plugins:
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: ${opt:stage, 'dev'}
+  region: us-east-1
+  lambdaHashingVersion: 20201221
+
+resources:
+  Resources:
+    CognitoUserPool:
+      Type: 'AWS::Cognito::UserPool'
+      Properties:
+        MfaConfiguration: OFF
+        UserPoolName: 'cognito-authorization-user-pool'
+        AutoVerifiedAttributes: ['email']
+        UsernameAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 6
+    CognitoUserPoolGroupAdmin:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        Description: 'Administrator access'
+        GroupName: 'admin'
+        Precedence: 1
+        UserPoolId:
+          Ref: CognitoUserPool
+    CognitoUserPoolGroupUser:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        Description: 'User access'
+        GroupName: 'user'
+        Precedence: 1
+        UserPoolId:
+          Ref: CognitoUserPool
+    CognitoUserPoolClient:
+      Type: 'AWS::Cognito::UserPoolClient'
+      Properties:
+        ClientName: 'cognito-authorization-user-pool-client'
+        GenerateSecret: False
+        AllowedOAuthFlowsUserPoolClient: true
+        CallbackURLs:
+          ['https://d1qt4e9p5ez97i.cloudfront.net/', 'https://example.com/']
+        DefaultRedirectURI: 'https://d1qt4e9p5ez97i.cloudfront.net/' # hosted UI
+        AllowedOAuthFlows: ['code']
+        AllowedOAuthScopes: ['openid']
+        SupportedIdentityProviders: ['COGNITO']
+        UserPoolId:
+          Ref: CognitoUserPool
+    CognitoUserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        Domain: authorization-user-pool-domain
+        UserPoolId:
+          Ref: CognitoUserPool
+
+functions:
+  authorizerFunc:
+    name: 'authorization'
+    environment:
+      USER_POOL_ID: !Ref CognitoUserPool
+    handler: handler.authorizerFunc
+  hello:
+    name: 'hello'
+    handler: handler.hello
+    events:
+      - http:
+          path: /hello
+          method: get
+          authorizer:
+            name: authorizerFunc
+            resultTtlInSeconds: 0
+            identitySource: method.request.header.Authorization

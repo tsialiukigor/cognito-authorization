@@ -1,0 +1,21 @@
+{
+  "name": "cognito-authorization",
+  "version": "1.0.0",
+  "description": "",
+  "main": "handler.js",
+  "scripts": {
+    "start": "sls offline start",
+    "deploy:all": "sls deploy",
+    "remove:all": "sls remove"
+  },
+  "author": "Igor Tsialiuk",
+  "license": "ISC",
+  "dependencies": {
+    "jsonwebtoken": "^8.5.1",
+    "jwk-to-pem": "^2.0.5",
+    "node-fetch": "^2.6.1"
+  },
+  "devDependencies": {
+    "serverless-offline": "^8.0.0"
+  }
+}
